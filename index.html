@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#090b10">
+<title>Ayan Calculator</title>
+<style>
+*{box-sizing:border-box}
+:root{color-scheme:dark}
+body{
+ margin:0;background:#090b10;color:#f7f8fc;
+ font-family:Arial,"Noto Sans Bengali",sans-serif;
+ min-height:100vh;display:flex;justify-content:center;
+}
+.app{width:100%;max-width:480px;padding:20px 17px 28px}
+header{display:flex;justify-content:space-between;align-items:center;margin:5px 0 24px}
+.brand{font-size:21px;font-weight:800;letter-spacing:.4px}
+.brand span{color:#ffad42}
+.sub{font-size:11px;color:#7e8596;margin-top:5px}
+button{font:inherit;border:0;cursor:pointer;touch-action:manipulation}
+.topbtn{background:#1b1e28;color:#ffb44c;border-radius:13px;padding:12px;font-size:13px}
+.display{
+ min-height:155px;background:#11141c;border:1px solid #202430;
+ border-radius:24px;padding:20px;margin-bottom:17px;
+ display:flex;flex-direction:column;justify-content:flex-end;
+}
+.small{color:#858da0;text-align:right;min-height:25px;font-size:15px;overflow-wrap:anywhere}
+.result{font-size:clamp(35px,9vw,49px);text-align:right;
+ font-weight:650;overflow-wrap:anywhere;margin-top:13px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:0 2px 13px}
+.mode{display:flex;gap:7px}
+.mode button{padding:10px 13px;border-radius:12px;background:#171a23;color:#a8afc0;font-size:13px}
+.mode button.active{background:#ffad42;color:#17100a;font-weight:bold}
+#angle{color:#ffbf6b}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.grid.scientific{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.key{
+ min-width:0;height:65px;border-radius:19px;
+ background:#191d27;color:#f5f6fa;font-size:22px;
+ box-shadow:inset 0 1px #ffffff08;
+}
+.scientific .key{height:49px;border-radius:14px;font-size:15px}
+.key:active{filter:brightness(1.35);transform:scale(.97)}
+.key.fn{background:#242936;color:#ffbd63}
+.key.danger{background:#39232a;color:#ff8992}
+.key.op{background:#242330;color:#c9b5ff}
+.key.equal{background:#ffad42;color:#201509;font-size:27px;font-weight:bold}
+.key.zero{grid-column:span 2}
+.footer{text-align:center;color:#626b7e;font-size:11px;margin:22px 0 0}
+.overlay{position:fixed;inset:0;background:#000a;z-index:4;display:none}
+.overlay.show{display:block}
+.panel{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+ width:100%;max-width:480px;max-height:78vh;overflow:auto;
+ background:#151923;border:1px solid #292e3b;border-radius:24px 24px 0 0;
+ padding:23px 18px 30px}
+.panelhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panelhead h2{font-size:20px;margin:0}
+.history-item{padding:14px 12px;border-bottom:1px solid #292e39;cursor:pointer}
+.history-item:active{background:#232836}
+.hist-expr{text-align:right;color:#a5adbf;font-size:14px;overflow-wrap:anywhere}
+.hist-result{text-align:right;font-size:21px;margin-top:7px;overflow-wrap:anywhere}
+.empty{text-align:center;color:#8790a2;padding:28px 0}
+@media(max-height:720px){.app{padding-top:10px}.display{min-height:115px;padding:15px}.key{height:54px}.scientific .key{height:42px}.grid{gap:7px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header>
+ <div>
+  <div class="brand">AYAN <span>CALCULATOR</span></div>
+  <div class="sub">SMART • SIMPLE • SCIENTIFIC</div>
+ </div>
+ <button class="topbtn" id="historyBtn">◷ History</button>
+</header>
+
+<section class="display">
+ <div class="small" id="expression" aria-live="polite">Ready to calculate</div>
+ <div class="result" id="result" aria-live="polite">0</div>
+</section>
+
+<div class="toolbar">
+ <div class="mode">
+  <button class="active" id="basicBtn">Basic</button>
+  <button id="sciBtn">Scientific</button>
+ </div>
+ <button class="topbtn" id="angle">DEG</button>
+</div>
+
+<div class="grid" id="keys">
+ <button class="key fn" data-action="clear">AC</button>
+ <button class="key fn" data-action="back">⌫</button>
+ <button class="key fn" data-value="%">%</button>
+ <button class="key op" data-value="÷">÷</button>
+
+ <button class="key" data-value="7">7</button>
+ <button class="key" data-value="8">8</button>
+ <button class="key" data-value="9">9</button>
+ <button class="key op" data-value="×">×</button>
+
+ <button class="key" data-value="4">4</button>
+ <button class="key" data-value="5">5</button>
+ <button class="key" data-value="6">6</button>
+ <button class="key op" data-value="-">−</button>
+
+ <button class="key" data-value="1">1</button>
+ <button class="key" data-value="2">2</button>
+ <button class="key" data-value="3">3</button>
+ <button class="key op" data-value="+">+</button>
+
+ <button class="key zero" data-value="0">0</button>
+ <button class="key" data-value=".">.</button>
+ <button class="key equal" data-action="equals">=</button>
+</div>
+<div class="footer">AYAN CALCULATOR • Made for everyday math</div>
+</main>
+
+<div class="overlay" id="overlay">
+ <section class="panel">
+  <div class="panelhead">
+   <h2>Calculation History</h2>
+   <button class="topbtn" id="closeHistory">✕</button>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+   <button class="topbtn" id="clearHistory">Clear history</button>
+  </div>
+  <div id="historyList"></div>
+ </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let expr = "";
+let justSolved = false;
+let scientific = false;
+let degrees = true;
+let history = [];
+
+try {
+ history = JSON.parse(localStorage.getItem("ayanCalcHistory") || "[]");
+ if (!Array.isArray(history)) history = [];
+} catch { history = []; }
+
+function pretty(s) {
+ return s.replace(/\*/g, "×").replace(/\//g, "÷");
+}
+function render() {
+ $("expression").textContent = expr ? pretty(expr) : "Ready to calculate";
+ $("result").textContent = expr || "0";
+}
+function insert(v) {
+ if (justSolved && /[0-9.(]/.test(v) &&
+     (v.length === 1 && /[0-9.(]/.test(v))) expr = "";
+ justSolved = false;
+ expr += v;
+ render();
+}
+function clearAll() {
+ expr = "";
+ justSolved = false;
+ render();
+}
+function backspace() {
+ expr = expr.slice(0,-1);
+ justSolved = false;
+ render();
+}
+
+// Safe mathematical parser: no eval() or arbitrary code execution.
+function calculate(source) {
+ let s = source.replace(/×/g,"*").replace(/÷/g,"/");
+ const tokens = s.match(
+  /(?:\d+\.?\d*|\.\d+)|(?:sin|cos|tan|sqrt|log|ln|abs|pi|Ans|e)|[()+\-*/%^]/gi
+ ) || [];
+ if (tokens.join("") !== s.replace(/\s/g,""))
+  throw Error("Invalid expression");
+
+ let pos = 0;
+ const peek = () => tokens[pos];
+ const take = () => tokens[pos++];
+
+ function primary() {
+  const t = take();
+  if (t === undefined) throw Error("Incomplete");
+
+  if (t === "(") {
+   const n = add();
+   if (take() !== ")") throw Error("Missing )");
+   return n;
+  }
+  if (/^\d*\.?\d+$/.test(t)) return Number(t);
+
+  if (/^(pi|e|Ans)$/i.test(t)) {
+   if (/^pi$/i.test(t)) return Math.PI;
+   if (/^e$/i.test(t)) return Math.E;
+   return 0;
+  }
+
+  if (/^(sin|cos|tan|sqrt|log|ln|abs)$/i.test(t)) {
+   if (peek() === "(") {
+    take();
+    const n = add();
+    if (take() !== ")") throw Error("Missing )");
+    return apply(t,n);
+   }
+   return apply(t,unary());
+  }
+  throw Error("Invalid expression");
+ }
+
+ function apply(fn,n) {
+  switch(fn.toLowerCase()) {
+   case "sin": return Math.sin(degrees?n*Math.PI/180:n);
+   case "cos": return Math.cos(degrees?n*Math.PI/180:n);
+   case "tan": return Math.tan(degrees?n*Math.PI/180:n);
+   case "sqrt": return Math.sqrt(n);
+   case "log": return Math.log10(n);
+   case "ln": return Math.log(n);
+   case "abs": return Math.abs(n);
+  }
+ }
+
+ function postfix() {
+  let n = primary();
+  while (peek() === "%") { take(); n /= 100; }
+  return n;
+ }
+ function power() {
+  let n = postfix();
+  if (peek() === "^") { take(); n = Math.pow(n,unary()); }
+  return n;
+ }
+ function unary() {
+  if (peek() === "+") { take(); return unary(); }
+  if (peek() === "-") { take(); return -unary(); }
+  return power();
+ }
+ function mul() {
+  let n = unary();
+  while (["*","/","%"].includes(peek())) {
+   const op = take(), r = unary();
+   if (op === "*") n *= r;
+   else if (op === "/") n /= r;
+   else n %= r;
+  }
+  return n;
+ }
+ function add() {
+  let n = mul();
+  while (peek() === "+" || peek() === "-") {
+   const op = take(), r = mul();
+   n = op === "+" ? n+r : n-r;
+  }
+  return n;
+ }
+
+ const value = add();
+ if (pos !== tokens.length || !Number.isFinite(value))
+  throw Error("Math error");
+ return Number(value.toPrecision(12)).toString();
+}
+
+function equals() {
+ if (!expr) return;
+ try {
+  const original = expr;
+  const answer = calculate(expr);
+  $("expression").textContent = pretty(original) + " =";
+  $("result").textContent = answer;
+  history.unshift({expr:original,result:answer});
+  history = history.slice(0,100);
+  try { localStorage.setItem("ayanCalcHistory",JSON.stringify(history)); } catch {}
+  expr = answer;
+  justSolved = true;
+ } catch {
+  $("expression").textContent = "Check your expression";
+  $("result").textContent = "Error";
+  justSolved = false;
+ }
+}
+
+function renderHistory() {
+ const list = $("historyList");
+ list.replaceChildren();
+ if (!history.length) {
+  const empty = document.createElement("div");
+  empty.className = "empty";
+  empty.textContent = "No calculations yet";
+  list.append(empty);
+  return;
+ }
+ history.forEach(item => {
+  const row = document.createElement("div");
+  row.className = "history-item";
+  const e = document.createElement("div");
+  e.className = "hist-expr";
+  e.textContent = pretty(item.expr);
+  const r = document.createElement("div");
+  r.className = "hist-result";
+  r.textContent = "= " + item.result;
+  row.append(e,r);
+  row.addEventListener("click",() => {
+   expr = item.result;
+   justSolved = true;
+   render();
+   $("overlay").classList.remove("show");
+  });
+  list.append(row);
+ });
+}
+
+function setScientific(on) {
+ scientific = on;
+ $("sciBtn").classList.toggle("active",on);
+ $("basicBtn").classList.toggle("active",!on);
+ const grid = $("keys");
+ grid.classList.toggle("scientific",on);
+ grid.replaceChildren();
+
+ const keys = on ? [
+  ["sin(","fn"],["cos(","fn"],["tan(","fn"],["√(","fn"],["^","op"],
+  ["log(","fn"],["ln(","fn"],["(", "fn"],[")","fn"],["π","fn"],
+  ["AC","fn danger","clear"],["⌫","fn","back"],["%","fn"],["÷","op"],["×","op"],
+  ["7",""],["8",""],["9",""],["-","op"],["+" ,"op"],
+  ["4",""],["5",""],["6",""],["1",""],["2",""],
+  ["3",""],["0",""],[".",""],["=","equal","equals"],["Ans","fn"]
+ ] : [
+  ["AC","fn danger","clear"],["⌫","fn","back"],["%","fn"],["÷","op"],
+  ["7",""],["8",""],["9",""],["×","op"],
+  ["4",""],["5",""],["6",""],["-","op"],
+  ["1",""],["2",""],["3",""],["+","op"],
+  ["0","zero"],[".",""],["=","equal","equals"]
+ ];
+ keys.forEach(([label,cls,action]) => {
+  const b = document.createElement("button");
+  b.className = "key " + (cls||"");
+  b.textContent = label;
+  if (action) b.dataset.action = action;
+  else b.dataset.value = label === "π" ? "pi" :
+   label === "√(" ? "sqrt(" : label === "Ans" ? "0" :
+   label === "÷" ? "÷" : label === "×" ? "×" : label;
+  if (label === "√(") b.dataset.value = "sqrt(";
+  if (label === "π") b.dataset.value = "pi";
+  if (label === "Ans") b.dataset.value = "0";
+  if (label === "=") b.dataset.action = "equals";
+  if (label === "AC") b.dataset.action = "clear";
+  if (label === "⌫") b.dataset.action = "back";
+  grid.append(b);
+ });
+}
+
+$("keys").addEventListener("click",e => {
+ const b = e.target.closest("button");
+ if (!b) return;
+ if (b.dataset.action === "clear") clearAll();
+ else if (b.dataset.action === "back") backspace();
+ else if (b.dataset.action === "equals") equals();
+ else if (b.dataset.value) insert(b.dataset.value);
+});
+$("basicBtn").onclick = () => setScientific(false);
+$("sciBtn").onclick = () => setScientific(true);
+$("angle").onclick = () => {
+ degrees = !degrees;
+ $("angle").textContent = degrees ? "DEG" : "RAD";
+};
+$("historyBtn").onclick = () => {
+ renderHistory();
+ $("overlay").classList.add("show");
+};
+$("closeHistory").onclick = () => $("overlay").classList.remove("show");
+$("overlay").addEventListener("click",e => {
+ if (e.target === $("overlay")) $("overlay").classList.remove("show");
+});
+$("clearHistory").onclick = () => {
+ history = [];
+ try { localStorage.removeItem("ayanCalcHistory"); } catch {}
+ renderHistory();
+};
+document.addEventListener("keydown",e => {
+ if (/^[0-9.]$/.test(e.key)) insert(e.key);
+ else if (["+", "-", "*", "/", "%", "^", "(", ")"].includes(e.key))
+  insert(e.key === "*" ? "×" : e.key === "/" ? "÷" : e.key);
+ else if (e.key === "Enter" || e.key === "=") equals();
+ else if (e.key === "Backspace") backspace();
+ else if (e.key === "Escape") clearAll();
+});
+render();
+</script>
+</body>
+  </html>
